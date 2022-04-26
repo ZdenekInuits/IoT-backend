@@ -1,0 +1,28 @@
+#cloud-config
+groups:
+  - admin
+
+users:
+  - default
+  - name: root
+    gecos: root
+    primary_group: root
+    groups: admin
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIgV9G/iTq1X2IrFLBV5JN66TunTMcs/L/90FDnMTe6l zdenek@inuits.eu 
+  
+runcmd:
+  # to get VM into decent shape
+  - yum -y update
+  # to be sure yum utils are present
+  - yum -y install yum-utils bash-completion ntp
+  # add docker-ce repository
+  - yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  # install docker and its bits
+  - yum -y install docker-ce docker-ce-cli containerd.io
+  # enable and start the docker service
+  - systemctl enable --now docker
+  # sync date time with ntp
+  - systemctl enable --now ntp
+  # kick ntp via timedatectl
+  - timedatectl set-ntp true

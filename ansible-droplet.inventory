@@ -1,0 +1,8 @@
+[cluster]
+164.90.165.207 manager=true
+164.90.165.210 manager=false
+164.90.165.211 manager=false
+
+[cluster:vars]
+manager_internal_ip=10.135.0.3
+manager_external_ip=164.90.165.207

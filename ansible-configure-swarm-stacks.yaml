@@ -1,0 +1,37 @@
+---
+- hosts: all
+  tasks:
+    - name: create monitoring directory
+      ansible.builtin.file:
+        path: /root/monitoring
+        owner: root
+        group: root
+        mode: '0750'
+        state: directory
+      when: manager == "true"
+
+    - name: copy monitoring configs and stack files
+      ansible.builtin.copy:
+        src: ./monitoring/
+        dest: /root/monitoring/
+        mode: '0640'
+      register: monitoring_dir
+      when: manager == "true"
+
+    - name: clean up monitoring services if monitoring dir has changed
+      ansible.builtin.shell: docker stack rm monitoring; sleep 5
+      when: monitoring_dir.changed
+
+    - name: kickstart prometheus, alertmanager and exporters 
+      ansible.builtin.raw: "docker stack deploy monitoring -c /root/monitoring/monitoring-compose.yml"
+      when: manager == "true"
+
+    - name: check for running services
+      ansible.builtin.shell: sleep 2; docker service ls
+      when: manager == "true"
+      register: docker_services
+
+    - name: show docker service status
+      ansible.builtin.debug:
+        var: docker_services.stdout_lines
+      when: manager == "true"

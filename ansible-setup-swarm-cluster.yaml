@@ -1,0 +1,42 @@
+---
+- hosts: all
+  vars:
+    token: "{{ hostvars[manager_external_ip]['swarm_worker_token']['stdout'] }}"
+    swarm: "{{ hostvars[manager_external_ip]['swarm_exists'] }}"
+  tasks:
+    ### Check if swarm already exists and report that to variable
+    ### Variable is used to skip swarm init and join activities
+    - name: check swarm cluster
+      ansible.builtin.shell: docker node ls
+      register: swarm_exists
+      ignore_errors: true
+      when: manager == "true"
+
+    ### First node is manager and cluster must be initialized
+    - name: init swarm cluster
+      ansible.builtin.shell: docker swarm init --advertise-addr eth1
+      when: manager == "true" and swarm_exists is failed
+
+    ### Other nodes need worker token to join
+    ### it is reported to variable and used in later task
+    - name: get worker join token
+      ansible.builtin.shell: docker swarm join-token -q worker
+      register: swarm_worker_token
+      when: manager == "true" and swarm_exists is failed
+
+    ### use token variable and build join command from it
+    - name: connect workers to manager
+      ansible.builtin.shell: "docker swarm join --token {{ token }} {{ manager_internal_ip }}:2377"
+      when: manager == "false" and swarm is failed
+
+    ### check cluster status and report it into variable
+    - name: verify cluster state
+      ansible.builtin.shell: docker node ls
+      register: swarm_cluster_status
+      when: manager == "true"
+
+    ### print status as debug info to play output
+    - name: show cluster status
+      debug:
+        var: swarm_cluster_status.stdout_lines
+      when: manager == "true"

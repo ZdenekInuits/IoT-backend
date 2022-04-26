@@ -1,0 +1,212 @@
+version: '3.7'
+
+services:
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - prometheus_data:/prometheus
+    ports:
+      - target: 9090
+        published: 8082
+        protocol: tcp
+        mode: ingress
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    configs:
+      - source: prometheus.yml
+        target: /etc/prometheus/prometheus.yml
+      - source: prometheus-alert.rules
+        target: /etc/prometheus/alert.rules
+    networks:
+      - prometheus
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '0.30'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+
+  alertmanager:
+    image: prom/alertmanager
+    volumes:
+      - alertmanager_data:/alertmanager
+    ports:
+      - target: 9093
+        published: 8083
+        protocol: tcp
+        mode: ingress
+    configs:
+      - source: alertmanager.yml
+        target: /etc/alertmanager/config.yml
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - prometheus
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '0.20'
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+
+  node-exporter:
+    image: jmb12686/node-exporter
+    networks:
+      - prometheus
+    environment:
+      - NODE_ID={{.Node.ID}}
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /etc/hostname:/etc/nodename:ro
+    command:
+      - '--path.sysfs=/host/sys'
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--collector.textfile.directory=/etc/node-exporter/'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--no-collector.ipvs'
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: '0.10'
+          memory: 32M
+      restart_policy:
+        condition: on-failure
+
+  blackbox_exporter:
+    image: prom/blackbox-exporter
+    networks:
+      - prometheus
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: '0.20'
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+
+  grafana:
+    image: grafana/grafana
+    networks:
+      - prometheus
+    ports:
+      - target: 3000
+        published: 8081
+        protocol: tcp
+        mode: ingress
+    volumes:
+      - grafana_data:/var/lib/grafana
+    configs:
+      - source: grafana-dashboard.yml
+        target: /etc/grafana/provisioning/dashboards/dashboard.yml
+      - source: grafana-datasource.yml
+        target: /etc/grafana/provisioning/datasources/datasource.yml
+      - source: grafana-nodes-dash.json
+        target: /etc/grafana/provisioning/dashboards/grafana-nodes-dash.json
+      - source: grafana-prometheus-dash.json
+        target: /etc/grafana/provisioning/dashboards/grafana-prometheus-dash.json
+      - source: grafana-http-dash.json
+        target: /etc/grafana/provisioning/dashboards/grafana-http-dash.json
+    environment:
+      - "GF_SECURITY_ADMIN_PASSWORD=changeme!"
+      - "GF_USERS_ALLOW_SIGN_UP=false"
+      - "GF_INSTALL_PLUGINS=grafana-piechart-panel"
+      - "GF_SERVER_DOMAIN=IoT-backend"
+    user: "104"
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+          - node.hostname == docker2
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+
+  example-app:
+    image: quay.io/brancz/prometheus-example-app:v0.3.0
+    networks:
+      - prometheus
+    ports:
+      - target: 8080
+        published: 8080
+        protocol: tcp
+        mode: ingress
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+          - node.hostname == docker3
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+
+  pushgateway:
+    image: prom/pushgateway
+    networks:
+      - prometheus
+    ports:
+      - target: 9091
+        published: 8084
+        protocol: tcp
+        mode: ingress
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+          - node.hostname == docker3
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+
+networks:
+  prometheus:
+
+volumes:
+  alertmanager_data:
+  prometheus_data:
+  grafana_data:
+
+configs:
+  alertmanager.yml:
+    file: alertmanager.yml
+  prometheus.yml:
+    file: prometheus.yml
+  prometheus-alert.rules:
+    file: alert.rules
+  grafana-dashboard.yml:
+    file: grafana-dashboard.yml
+  grafana-datasource.yml:
+    file: grafana-datasource.yml
+  grafana-nodes-dash.json:
+    file: grafana-nodes-dash.json
+  grafana-prometheus-dash.json:
+    file: grafana-prometheus-dash.json
+  grafana-http-dash.json:
+    file: grafana-http-dash.json
