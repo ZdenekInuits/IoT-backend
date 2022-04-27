@@ -1,23 +1,28 @@
 ## Basic example of kickstarting data and monitoring backend for IoT projects
 
   1. Terraform with DigitalOcean provider  
-    **serving as orchestrator for infrastructure part via API**
-    - Config files:
-      digitalocean.tf : main configuration file with infrastructure specifications  
-      outputs.tf : serves as template for output information about results  
-      digitalocean.tfvars : contain api_key  
-        Note: Missing from repo: `api_token = "xxx"`  
-      terraform-droplet.yaml : cloud init script for postinstall tasks  
+    **serving as orchestrator for infrastructure part via API**  
+    - Config files:  
+        digitalocean.tf : main configuration file with infrastructure specifications  
+        outputs.tf : serves as template for output information about results  
+        digitalocean.tfvars : contain api_key  
+            Note: Missing from repo: `api_token = "xxx"`  
+        terraform-droplet.yaml : cloud init script for postinstall tasks  
     - workflow with terraform  
-      terraform init (just once per project)  
-      terraform apply -var-file="digitalocean.tfvars"  
-      terraform destroy -var-file="digitalocean.tfvars"  
+        terraform init (just once per project)  
+        terraform apply -var-file="digitalocean.tfvars"  
+        terraform destroy -var-file="digitalocean.tfvars"  
     - [link to digital ocean provider docs](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/data-sources/droplet)
 
   2. Ansible swarm bootstrap  
-    - ansible.cfg  
-    - ansible.inventory  
-    - ansible-playbook setup-swarm-cluster.yaml  
+    **serving as configuration management automation**  
+    - Config files:  
+        ansible.cfg : main configuration file with run defaults  
+        ansible-droplet.inventory : inventory file with VM IPs and host variables  
+        ansible-setup-swarm-cluster.yaml : simple playbook to kickstart Docker Swarm cluster  
+        ansible-configure-swarm-stacks.yaml : playbook to deploy desired service containers  
+    - workflow with ansible  
+        ansible-playbook ansible-setup-swarm-cluster.yaml  
 
   3. Ansible monitoring stack deploy  
     - ansible-playbook ansible-configure-swarm-stacks.yaml  
