@@ -1,7 +1,7 @@
 ## Basic example of kickstarting data and monitoring backend for IoT projects
 
   1. Terraform with DigitalOcean provider  
-    - Note: Missing var-file: api_token = "xxx"  
+    - Note: Missing var-file: `api_token = "xxx"`  
     - terraform init (just once per project)  
     - terraform apply -var-file="digitalocean.tfvars"  
     - terraform destroy -var-file="digitalocean.tfvars"  
