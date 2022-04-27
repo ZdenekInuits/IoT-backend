@@ -1,10 +1,18 @@
 ## Basic example of kickstarting data and monitoring backend for IoT projects
 
   1. Terraform with DigitalOcean provider  
-    - Note: Missing var-file: `api_token = "xxx"`  
-    - terraform init (just once per project)  
-    - terraform apply -var-file="digitalocean.tfvars"  
-    - terraform destroy -var-file="digitalocean.tfvars"  
+    **serving as orchestrator for infrastructure part via API**
+    - Config files:
+      digitalocean.tf : main configuration file with infrastructure specifications  
+      outputs.tf : serves as template for output information about results  
+      digitalocean.tfvars : contain api_key  
+        Note: Missing from repo: `api_token = "xxx"`  
+      terraform-droplet.yaml : cloud init script for postinstall tasks  
+    - workflow with terraform  
+      terraform init (just once per project)  
+      terraform apply -var-file="digitalocean.tfvars"  
+      terraform destroy -var-file="digitalocean.tfvars"  
+    - [link to digital ocean provider docs](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/data-sources/droplet)
 
   2. Ansible swarm bootstrap  
     - ansible.cfg  
